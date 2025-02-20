@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { DiffEditor } from "@monaco-editor/react";
+import { DiffEditor as MonacoDiffEditor } from "@monaco-editor/react";
 import { useTheme } from "./theme-provider"; // Importação corrigida
 
 interface ComparisonPanelProps {
@@ -11,10 +11,10 @@ interface ComparisonPanelProps {
   onTranslatedChange?: (text: string) => void;
   scrollToLine?: number;
   searchHighlight?: string;
-  searchType: 'original' | 'translated'; // Added searchType prop
+  searchType: 'original' | 'translated';
 }
 
-const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
+const ComparisonPanel = React.forwardRef<HTMLDivElement, ComparisonPanelProps>(({
   originalText,
   translatedText,
   syncScroll,
@@ -22,20 +22,22 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   onTranslatedChange,
   scrollToLine,
   searchHighlight,
-  searchType, // Destructure searchType
-}) => {
+  searchType,
+}, ref) => {
   const [translatedEditorValue, setTranslatedEditorValue] = useState(translatedText);
   const diffEditorRef = useRef<any>(null);
 
   // Obtém o tema atual do ThemeProvider
   const { theme } = useTheme();
 
-  // Atualiza o texto traduzido quando a prop `translatedText` muda
   useEffect(() => {
     setTranslatedEditorValue(translatedText);
   }, [translatedText]);
 
-  // Sincronização de scroll
+  const handleEditorMount = (editor: any, monaco: any) => {
+    diffEditorRef.current = editor;
+  };
+
   useEffect(() => {
     if (syncScroll && diffEditorRef.current) {
       const diffEditor = diffEditorRef.current;
@@ -63,7 +65,6 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
     }
   }, [syncScroll]);
 
-  // Atualiza o texto traduzido e notifica o componente pai
   const handleTranslatedEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       setTranslatedEditorValue(value);
@@ -71,44 +72,42 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
     }
   };
 
-  // Scroll to line effect
   useEffect(() => {
     if (scrollToLine && diffEditorRef.current) {
       const diffEditor = diffEditorRef.current;
       const editor = searchType === 'original' ? diffEditor.getOriginalEditor() : diffEditor.getModifiedEditor();
       if (editor) {
         editor.revealLine(scrollToLine);
-        editor.focus(); // Add focus to the editor
+        editor.focus();
       }
     }
   }, [scrollToLine, searchType]);
 
-  // Determina o tema do Monaco Editor com base no tema do site
   const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
 
   return (
-    <div className={`h-full flex gap-4 p-4 ${layout === 'vertical' ? 'flex-col' : 'flex-row'}`}>
-      <Card className="flex-1 relative rounded-lg overflow-hidden"> {/* Adicionado rounded-lg e overflow-hidden */}
-        <DiffEditor
-          ref={diffEditorRef}
+    <div ref={ref} className={`h-full flex gap-4 p-4 ${layout === 'vertical' ? 'flex-col' : 'flex-row'}`}>
+      <Card className="flex-1 relative rounded-lg overflow-hidden">
+        <MonacoDiffEditor
           height="100%"
           language="plaintext"
-          original={originalText} // Texto original
-          modified={translatedEditorValue} // Texto traduzido
-          onChange={handleTranslatedEditorChange} // Atualiza o texto traduzido
+          original={originalText}
+          modified={translatedEditorValue}
+          onChange={handleTranslatedEditorChange}
+          onMount={handleEditorMount}
           options={{
-            readOnly: false, // Permite edição no texto traduzido
-            renderSideBySide: layout === 'horizontal', // Define o layout (horizontal ou vertical)
+            readOnly: false,
+            renderSideBySide: layout === 'horizontal',
             lineNumbers: 'on',
             scrollBeyondLastLine: false,
             wordWrap: 'on',
             minimap: { enabled: false },
-            theme: monacoTheme, // Aplica o tema do Monaco Editor
+            theme: monacoTheme,
           }}
         />
       </Card>
     </div>
   );
-};
+});
 
 export default ComparisonPanel;

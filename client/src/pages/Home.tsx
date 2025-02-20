@@ -286,7 +286,7 @@ export default function Home() {
 
                     <div className="flex items-center space-x-2">
                       <Label htmlFor="search-type" className="text-sm">Search In:</Label>
-                      <RadioGroup defaultValue="original" value={searchType} onValueChange={setSearchType} className="flex space-x-2">
+                      <RadioGroup defaultValue="original" value={searchType} onValueChange={(value: string) => setSearchType(value as 'original' | 'translated')} className="flex space-x-2">
                         <div className="flex items-center space-x-1">
                           <RadioGroupItem value="original" id="original" />
                           <Label htmlFor="original">Original</Label>
